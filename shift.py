@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Version identifier for update system
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -487,10 +487,6 @@ class MaskVisualizationTool(QMainWindow):
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.set_axis_off()
-        
-        # Reset plot references
-        self.bg_plot = None
-        self.mask_plot = None
         
         # Display background if available - background is fixed
         if self.processed_bg is not None:
