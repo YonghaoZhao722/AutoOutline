@@ -483,10 +483,26 @@ class MaskVisualizationTool(QMainWindow):
                 print(f"Auto-adjust error: {str(e)}")
     
     def update_display(self):
-        # Clear the entire figure to ensure all old content is removed
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
-        self.ax.set_axis_off()
+        # Clear and recreate the figure only if needed
+        if not hasattr(self, 'ax') or self.figure.axes == []:
+            self.figure.clear()
+            self.ax = self.figure.add_subplot(111)
+            self.ax.set_axis_off()
+        
+        # First ensure all previously created plots are removed
+        if self.bg_plot is not None:
+            try:
+                self.bg_plot.remove()
+            except:
+                pass
+            self.bg_plot = None
+            
+        if self.mask_plot is not None:
+            try:
+                self.mask_plot.remove()
+            except:
+                pass
+            self.mask_plot = None
         
         # Display background if available - background is fixed
         if self.processed_bg is not None:
