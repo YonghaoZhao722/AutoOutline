@@ -1,6 +1,9 @@
 # AutoOutline
 
 AutoOutline is a toolkit for microscopy image analysis, providing tools for mask registration, alignment, and processing.
+
+[Guide](https://yonghaozhao722.github.io/AutoOutlineDoc/)
+
 <img src="https://github.com/user-attachments/assets/f3c54b82-fb7b-479c-80d0-a83b345db24f" alt="mask2outline-removebg" width="300">
 
 ## Tools
