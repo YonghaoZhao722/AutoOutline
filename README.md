@@ -1,6 +1,6 @@
 # AutoOutline
 
-AutoOutline is a toolkit for microscopy image analysis, providing tools for mask registration, alignment, and processing.
+AutoOutline is a toolkit for microscopy image analysis, providing tools for mask registration, alignment, and conversion to FISH-Quant compatible outline file.
 
 [Guide](https://yonghaozhao722.github.io/AutoOutlineDoc/)
 
