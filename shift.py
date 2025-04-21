@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Version identifier for update system
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -299,18 +299,28 @@ class MaskVisualizationTool(QMainWindow):
                                                  "Image Files (*.png *.jpg *.tif *.tiff *.bmp);;All Files (*)")
         if file_path:
             try:
+                # Clear previous mask data completely
+                if self.mask_plot is not None:
+                    try:
+                        self.mask_plot.remove()
+                    except:
+                        pass
+                    self.mask_plot = None
+                
+                # Clear the colored mask to ensure no residual data
+                self.colored_mask = None
+                
+                # Load the new mask
                 self.mask_img = imread(file_path, as_gray=True)
                 self.mask_file_path = file_path
                 self.mask_file_label.setText(os.path.basename(file_path))
-                
-                # Reset any previous plots to force redraw
-                self.mask_plot = None
                 
                 # Reset offset when loading a new mask
                 self.offset_x = 0
                 self.offset_y = 0
                 self.offset_label.setText("Offset: X=0, Y=0")
                 
+                # Force a complete redraw
                 self.update_colormap()
                 
                 # Print mask info for debugging
@@ -473,26 +483,14 @@ class MaskVisualizationTool(QMainWindow):
                 print(f"Auto-adjust error: {str(e)}")
     
     def update_display(self):
-        # Clear and recreate the figure only if needed
-        if not hasattr(self, 'ax') or self.figure.axes == []:
-            self.figure.clear()
-            self.ax = self.figure.add_subplot(111)
-            self.ax.set_axis_off()
+        # Clear the entire figure to ensure all old content is removed
+        self.figure.clear()
+        self.ax = self.figure.add_subplot(111)
+        self.ax.set_axis_off()
         
-        # First ensure all previously created plots are removed
-        if self.bg_plot is not None:
-            try:
-                self.bg_plot.remove()
-            except:
-                pass
-            self.bg_plot = None
-            
-        if self.mask_plot is not None:
-            try:
-                self.mask_plot.remove()
-            except:
-                pass
-            self.mask_plot = None
+        # Reset plot references
+        self.bg_plot = None
+        self.mask_plot = None
         
         # Display background if available - background is fixed
         if self.processed_bg is not None:
