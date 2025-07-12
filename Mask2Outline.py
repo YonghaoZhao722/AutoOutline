@@ -186,14 +186,21 @@ class ProcessingThread(QThread):
             for file in os.listdir(cy3_folder):
                 file_lower = file.lower()
                 if file_lower.endswith(('.tif', '.tiff')):
-                    # Check if file contains w2CY3 or similar CY3 indicator
-                    has_cy3_marker = 'cy3' in file_lower or 'w2' in file_lower
+                    # Check if file contains w[number][identifier] pattern (e.g., w2CY3, w1CY5, w3DAPI)
+                    w_pattern = re.search(r'w(\d+)([a-zA-Z]+\d*)', file_lower)
+                    has_marker = w_pattern is not None
+                    
+                    # Extract indicator information if pattern is found
+                    if has_marker:
+                        indicator_index = w_pattern.group(1)  # The integer part
+                        indicator_view = w_pattern.group(2)   # The identifier part (e.g., cy3, cy5, dapi)
+                        print(f"Found marker: w{indicator_index}{indicator_view} in {file}")
                     
                     # Check if file has the same numeric ID and sequence ID
                     has_numeric_id = f"_{numeric_id}_" in file_lower or file_lower.startswith(f"{numeric_id}_")
                     has_sequence_id = f"_s{sequence_id}" in file_lower or f"_s{sequence_id}." in file_lower
                     
-                    if has_cy3_marker and has_numeric_id and has_sequence_id:
+                    if has_marker and has_numeric_id and has_sequence_id:
                         print(f"Match found: {file}")
                         return file
             
@@ -216,7 +223,9 @@ class ProcessingThread(QThread):
                     if len(mask_parts) > 2 and len(cy3_parts) > 2:
                         # Compare the main parts of the filename
                         common_prefix = '_'.join(mask_parts[:2])
-                        if common_prefix in cy3_base and 'cy3' in cy3_base.lower():
+                        # Check for w[number][identifier] pattern in cy3 filename
+                        w_pattern = re.search(r'w(\d+)([a-zA-Z]+\d*)', cy3_base)
+                        if common_prefix in cy3_base and w_pattern:
                             print(f"Fallback match found: {file}")
                             return file
             
@@ -349,8 +358,8 @@ class Mask2OutlineTool(QMainWindow):
         input_btn.clicked.connect(self.browse_input)
         input_layout.addWidget(input_btn, 0, 2)
         
-        # CY3 Image input
-        input_layout.addWidget(QLabel("CY3 Image/Folder:"), 1, 0)
+        # Image input
+        input_layout.addWidget(QLabel("FISH Image/Folder:"), 1, 0)
         self.fish_entry = QLineEdit()
         input_layout.addWidget(self.fish_entry, 1, 1)
         fish_btn = QPushButton("Browse...")
