@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Version identifier for update system
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 from skimage import measure
 import tifffile as tiff
