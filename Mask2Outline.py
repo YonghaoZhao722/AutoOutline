@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Version identifier for update system
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 from skimage import measure
 import tifffile as tiff
@@ -198,7 +198,12 @@ class ProcessingThread(QThread):
                     
                     # Check if file has the same numeric ID and sequence ID
                     has_numeric_id = f"_{numeric_id}_" in file_lower or file_lower.startswith(f"{numeric_id}_")
-                    has_sequence_id = f"_s{sequence_id}" in file_lower or f"_s{sequence_id}." in file_lower
+                    # Use regex for exact sequence ID matching to avoid s1 matching s10, s11, etc.
+                    sequence_pattern = rf"_s{sequence_id}(?:[._]|$)"
+                    has_sequence_id = re.search(sequence_pattern, file_lower) is not None
+                    
+                    print(f"  Testing file: {file}")
+                    print(f"    has_marker: {has_marker}, has_numeric_id: {has_numeric_id}, has_sequence_id: {has_sequence_id}")
                     
                     if has_marker and has_numeric_id and has_sequence_id:
                         print(f"Match found: {file}")
