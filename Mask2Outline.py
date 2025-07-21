@@ -408,8 +408,8 @@ class Mask2OutlineTool(QMainWindow):
         main_layout.addWidget(convert_btn)
         
         # Instructions
-        instructions = QLabel("Instructions: Select a TIFF mask and CY3 image (file mode) or folder (folder mode).\n"
-                            "In folder mode, CY3 files will be matched from the CY3 folder.")
+        instructions = QLabel("Instructions: Select a TIFF mask and FISH image (file mode) or folder (folder mode).\n"
+                            "In folder mode, FISH files will be matched from the FISH folder.")
         instructions.setStyleSheet("color: gray;")
         main_layout.addWidget(instructions)
         
