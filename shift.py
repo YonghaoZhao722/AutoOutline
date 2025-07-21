@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Version identifier for update system
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -31,8 +31,7 @@ class MaskVisualizationTool(QMainWindow):
         self.offset_y = 0
         self.last_pos = None
         self.drag_enabled = False
-        self.cmaps = plt.colormaps()  # Get all available colormaps
-        self.current_cmap = 'viridis'
+        # Removed colormap variables since we now use fixed 'viridis' colormap
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)  # Set initially on top
         
         # Batch processing variables
@@ -164,18 +163,6 @@ class MaskVisualizationTool(QMainWindow):
         # Mask display controls group
         mask_display_group = QGroupBox("Display Controls")
         controls_layout = QVBoxLayout()
-        
-        # Colormap selection
-        cmap_layout = QHBoxLayout()
-        cmap_layout.addWidget(QLabel("Colormap:"))
-        self.cmap_combo = QComboBox()
-        # Add the most common colormaps at the top
-        top_cmaps = ['viridis', 'plasma', 'inferno', 'magma', 'jet', 'rainbow', 'tab10', 'tab20', 'Spectral']
-        self.cmap_combo.addItems(top_cmaps)
-        self.cmap_combo.addItems([cm for cm in self.cmaps if cm not in top_cmaps])
-        self.cmap_combo.currentTextChanged.connect(self.update_colormap)
-        cmap_layout.addWidget(self.cmap_combo)
-        controls_layout.addLayout(cmap_layout)
         
         # Mask opacity
         opacity_layout = QVBoxLayout()
@@ -857,14 +844,11 @@ class MaskVisualizationTool(QMainWindow):
     
     def update_colormap(self):
         if self.mask_img is not None:
-            cmap_name = self.cmap_combo.currentText()
-            self.current_cmap = cmap_name
-            
             # Normalize the mask to range 0-1
             mask_normalized = img_as_float(self.mask_img)
             
             # Apply colormap
-            cmap = plt.get_cmap(cmap_name)
+            cmap = plt.get_cmap('viridis')
             colored = cmap(mask_normalized)
             
             # Set alpha channel based on mask values
