@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Version identifier for update system
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -216,6 +216,16 @@ class MaskVisualizationTool(QMainWindow):
         
         self.offset_label = QLabel("Offset: X=0.0, Y=0.0")
         offset_layout.addWidget(self.offset_label)
+        
+        # Cell selection and deletion
+        self.selected_cell_id = 0
+        self.selected_cell_label = QLabel("Selected: None")
+        offset_layout.addWidget(self.selected_cell_label)
+        
+        self.delete_cell_btn = QPushButton("Delete Selected Cell")
+        self.delete_cell_btn.clicked.connect(self.delete_selected_cell)
+        self.delete_cell_btn.setEnabled(False)
+        offset_layout.addWidget(self.delete_cell_btn)
         
         # Add step size adjustment
         step_layout = QHBoxLayout()
@@ -510,6 +520,10 @@ class MaskVisualizationTool(QMainWindow):
             self.offset_y = 0
             self.offset_label.setText("Offset: X=0, Y=0")
             
+            # Clear cell selection
+            self.selected_cell_id = 0
+            self.update_selected_cell_display()
+            
             # Update window title with current mask
             self.update_window_title()
             
@@ -616,11 +630,11 @@ class MaskVisualizationTool(QMainWindow):
             output_filename = os.path.basename(self.mask_file_path)
             output_path = os.path.join(self.output_folder, output_filename)
             
-            # Read original mask and apply any offset
-            original_mask = imread(self.mask_file_path)
+            # Use current mask (which may have deletions) and apply any offset
+            current_mask = self.mask_img.copy()
             x_shift = int(round(self.offset_x))
             y_shift = int(round(self.offset_y))
-            processed_mask = self.shift_without_warp(original_mask, x_shift, y_shift)
+            processed_mask = self.shift_without_warp(current_mask, x_shift, y_shift)
             
             # Save mask with original filename
             imsave(output_path, processed_mask, check_contrast=False)
@@ -722,6 +736,53 @@ class MaskVisualizationTool(QMainWindow):
         self.offset_y = 0
         self.update_offset_display()
         self.update_display()
+    
+    def delete_selected_cell(self):
+        """Delete the currently selected cell"""
+        if self.selected_cell_id > 0 and self.mask_img is not None:
+            deleted_id = self.selected_cell_id
+            
+            # Set selected cell pixels to 0 (background)
+            self.mask_img[self.mask_img == self.selected_cell_id] = 0
+            
+            # Ensure mask data type is preserved (important for saving)
+            if self.mask_img.dtype != np.uint16:
+                self.mask_img = self.mask_img.astype(np.uint16)
+            
+            # Clear selection
+            self.selected_cell_id = 0
+            self.update_selected_cell_display()
+            
+            # Force complete figure cleanup and regeneration
+            self.figure.clear()  # Clear entire figure
+            self.colored_mask = None  # Clear cached colored mask
+            self.mask_plot = None    # Clear plot cache
+            self.bg_plot = None      # Clear background plot cache
+            
+            # Recreate the axes and clear any residual content
+            self.ax = self.figure.add_subplot(111)
+            self.ax.clear()  # Clear axes content
+            self.ax.set_axis_off()
+            
+            # Force immediate canvas draw to clear old content
+            self.canvas.draw()
+            
+            # Regenerate everything from scratch
+            self.update_colormap()   # This will regenerate colored mask and call update_display
+            
+            # Force canvas redraw to ensure no lingering graphics
+            self.canvas.draw_idle()
+            
+            print(f"Deleted cell {deleted_id}")
+    
+    def update_selected_cell_display(self):
+        """Update the selected cell display label and button state"""
+        if self.selected_cell_id > 0:
+            self.selected_cell_label.setText(f"Selected: Cell {self.selected_cell_id}")
+            self.delete_cell_btn.setEnabled(True)
+        else:
+            self.selected_cell_label.setText("Selected: None")
+            self.delete_cell_btn.setEnabled(False)
         
     def select_mask_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Mask File", "", 
@@ -751,6 +812,10 @@ class MaskVisualizationTool(QMainWindow):
                 self.offset_x = 0
                 self.offset_y = 0
                 self.offset_label.setText("Offset: X=0, Y=0")
+                
+                # Clear cell selection
+                self.selected_cell_id = 0
+                self.update_selected_cell_display()
                 
                 # Force a complete redraw
                 self.update_colormap()
@@ -929,8 +994,18 @@ class MaskVisualizationTool(QMainWindow):
             
             # Create a copy with adjusted opacity
             overlay = self.colored_mask.copy()
-            # Only adjust opacity where mask isn't transparent
-            overlay[..., 3] = np.where(overlay[..., 3] > 0, opacity, 0)
+            
+            # Highlight selected cell in yellow
+            if self.selected_cell_id > 0 and self.mask_img is not None:
+                selected_mask = (self.mask_img == self.selected_cell_id)
+                overlay[selected_mask] = [1.0, 1.0, 0.0, 1.0]  # Yellow with full opacity
+            
+            # Only adjust opacity where mask isn't transparent (but keep selected cell bright)
+            if self.selected_cell_id > 0 and self.mask_img is not None:
+                selected_mask = (self.mask_img == self.selected_cell_id)
+                overlay[..., 3] = np.where((overlay[..., 3] > 0) & (~selected_mask), opacity, overlay[..., 3])
+            else:
+                overlay[..., 3] = np.where(overlay[..., 3] > 0, opacity, 0)
             
             mask_h, mask_w = overlay.shape[:2]
             
@@ -986,6 +1061,14 @@ class MaskVisualizationTool(QMainWindow):
                 # Check if we clicked on a non-transparent part
                 alpha = self.colored_mask[mask_y, mask_x, 3]
                 if alpha > 0:
+                    # Get cell ID at clicked position for selection
+                    if self.mask_img is not None:
+                        cell_id = self.mask_img[mask_y, mask_x]
+                        if cell_id > 0:
+                            self.selected_cell_id = cell_id
+                            self.update_selected_cell_display()
+                            print(f"Selected cell {cell_id}")
+                    
                     self.drag_enabled = True
                     self.last_pos = (event.xdata, event.ydata)
                     # Print debug info
@@ -1115,15 +1198,15 @@ class MaskVisualizationTool(QMainWindow):
             return # User cancelled
 
         try:
-            # Read the original mask image again to ensure we have the raw data
-            # This is important if the mask was converted to float for colormapping
-            original_mask = imread(self.mask_file_path) 
+            # Use current mask (which may have deletions) instead of re-reading original file
+            # This preserves any cell deletions that were made
+            current_mask = self.mask_img.copy()
             
             # Apply the offset using the current values
             x_shift = int(round(self.offset_x))
             y_shift = int(round(self.offset_y))
             
-            processed_mask = self.shift_without_warp(original_mask, x_shift, y_shift)
+            processed_mask = self.shift_without_warp(current_mask, x_shift, y_shift)
             
             # Save the mask using skimage.io.imsave to preserve data type
             imsave(save_path, processed_mask, check_contrast=False)
